@@ -354,6 +354,7 @@
       if (view === 'list') {
         const filtered = bookings.filter(b => {
           if (b.status !== 'active') return false;
+          if (b.category === '소셜매치') return false;
           if (listVenue !== '전체' && b.venue !== listVenue) return false;
           if (searchQuery.trim() && !b.customerName.includes(searchQuery.trim()) && !(b.phone && b.phone.includes(searchQuery.trim()))) return false;
           return true;
