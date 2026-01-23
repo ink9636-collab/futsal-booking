@@ -13,7 +13,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
-  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -31,7 +31,7 @@
     // Supabase 설정
     const SUPABASE_URL = 'https://ltkjopawqjdzoqegbkaz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0a2pvcGF3cWpkem9xZWdia2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTk2MjksImV4cCI6MjA4NDY3NTYyOX0.BknFqHiwMn2hxo_FRNbwMW3V-anq-EzpsUdhmb_cJw0';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const FutsalBookingSystem = () => {
       const [selectedVenue, setSelectedVenue] = useState('전체');
@@ -71,7 +71,7 @@
       const loadBookings = async () => {
         setLoading(true);
         try {
-          const { data, error } = await supabase
+          const { data, error } = await db
             .from('bookings')
             .select('*')
             .order('date', { ascending: false });
@@ -124,13 +124,13 @@
           };
 
           if (isUpdate) {
-            const { error } = await supabase
+            const { error } = await db
               .from('bookings')
               .update(dbData)
               .eq('id', booking.id);
             if (error) throw error;
           } else {
-            const { error } = await supabase
+            const { error } = await db
               .from('bookings')
               .insert(dbData);
             if (error) throw error;
@@ -240,7 +240,7 @@
       const deleteBooking = async () => {
         if (deletePassword === '1818') {
           try {
-            const { error } = await supabase
+            const { error } = await db
               .from('bookings')
               .delete()
               .eq('id', deleteId);
