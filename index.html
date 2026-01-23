@@ -43,7 +43,7 @@
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const FutsalBookingSystem = () => {
-      const [selectedVenue, setSelectedVenue] = useState('전체');
+      const [selectedVenue, setSelectedVenue] = useState('세마');
       const [selectedCourt, setSelectedCourt] = useState('');
       const [currentDate, setCurrentDate] = useState(new Date());
       const [view, setView] = useState('calendar');
