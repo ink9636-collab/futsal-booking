@@ -259,11 +259,14 @@
 
       const handleCancelClick = (booking) => {
         if (booking.repeatGroupId) {
+          const bookingDayOfWeek = new Date(booking.date).getDay();
           const futureBookings = bookings.filter(b => 
             b.repeatGroupId === booking.repeatGroupId && 
             b.status === 'active' && 
             b.date >= booking.date &&
-            b.id !== booking.id
+            b.id !== booking.id &&
+            new Date(b.date).getDay() === bookingDayOfWeek &&
+            b.startTime === booking.startTime
           );
           if (futureBookings.length > 0) {
             setShowBulkCancelModal({ booking, futureCount: futureBookings.length });
@@ -287,11 +290,22 @@
         }
         
         const booking = showBulkCancelModal.booking;
+        const bookingDayOfWeek = new Date(booking.date).getDay();
+        
         try {
+          // 같은 repeatGroupId, 같은 요일, 같은 시간, 해당 날짜 이후만 삭제
+          const bookingsToDelete = bookings.filter(b => 
+            b.repeatGroupId === booking.repeatGroupId && 
+            b.date >= booking.date &&
+            new Date(b.date).getDay() === bookingDayOfWeek &&
+            b.startTime === booking.startTime
+          );
+          
+          const idsToDelete = bookingsToDelete.map(b => b.id);
+          
           const { error } = await db.from('bookings')
             .delete()
-            .eq('repeat_group_id', booking.repeatGroupId)
-            .gte('date', booking.date);
+            .in('id', idsToDelete);
           
           if (error) throw error;
           await loadBookings();
@@ -848,11 +862,12 @@
                   <>
                     <p className="mb-4 text-sm text-gray-600">
                       이 예약은 반복 예약입니다.<br/>
-                      이후 동일한 일정이 <strong>{showBulkCancelModal.futureCount}개</strong> 더 있습니다.
+                      매주 <strong>{dayNames[new Date(showBulkCancelModal.booking.date).getDay()]}요일 {showBulkCancelModal.booking.startTime}</strong> 일정이<br/>
+                      이후 <strong>{showBulkCancelModal.futureCount}개</strong> 더 있습니다.
                     </p>
                     <div className="space-y-2">
                       <button onClick={cancelSingleBooking} className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold">이 일정만 취소</button>
-                      <button onClick={cancelAllFutureBookings} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">이후 일정 모두 취소</button>
+                      <button onClick={cancelAllFutureBookings} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">이후 같은 요일/시간 모두 취소</button>
                       <button onClick={() => { setShowBulkCancelModal(null); setBulkCancelConfirm(false); }} className="w-full bg-gray-200 py-3 rounded-lg font-semibold">뒤로가기</button>
                     </div>
                   </>
