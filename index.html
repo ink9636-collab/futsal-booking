@@ -133,15 +133,19 @@
 
       const saveMultipleBookings = async (bookingsToSave) => {
         try {
-          const dbDataArray = bookingsToSave.map(booking => ({
-            id: booking.id, venue: booking.venue, court: booking.court, date: booking.date,
-            start_time: booking.startTime, end_time: booking.endTime, category: booking.category,
-            customer_name: booking.customerName, phone: booking.phone || null, route: booking.route || null,
-            status: booking.status, cancel_reason: booking.cancelReason || null,
-            repeat_group_id: booking.repeatGroupId || null
-          }));
-          const { error } = await db.from('bookings').insert(dbDataArray);
-          if (error) throw error;
+          const batchSize = 10;
+          for (let i = 0; i < bookingsToSave.length; i += batchSize) {
+            const batch = bookingsToSave.slice(i, i + batchSize);
+            const dbDataArray = batch.map(booking => ({
+              id: booking.id, venue: booking.venue, court: booking.court, date: booking.date,
+              start_time: booking.startTime, end_time: booking.endTime, category: booking.category,
+              customer_name: booking.customerName, phone: booking.phone || null, route: booking.route || null,
+              status: booking.status, cancel_reason: booking.cancelReason || null,
+              repeat_group_id: booking.repeatGroupId || null
+            }));
+            const { error } = await db.from('bookings').insert(dbDataArray);
+            if (error) throw error;
+          }
           await loadBookings();
           return true;
         } catch (error) {
@@ -186,8 +190,9 @@
           const bookingsToCreate = [];
           const overlappingDates = [];
           
-          for (const date of repeatDates) {
-            const bookingForDate = { ...newBooking, date, id: Date.now() + Math.random(), repeatGroupId };
+          for (let i = 0; i < repeatDates.length; i++) {
+            const date = repeatDates[i];
+            const bookingForDate = { ...newBooking, date, id: Date.now() + i, repeatGroupId };
             const overlap = checkTimeOverlap(bookingForDate);
             if (overlap) {
               overlappingDates.push(date);
@@ -323,7 +328,14 @@
         else setNewBooking({ ...newBooking, category, customerName: '', route: '전화' });
       };
 
+      const getSelectedDateDay = () => {
+        if (!newBooking.date) return null;
+        return new Date(newBooking.date).getDay();
+      };
+
       const toggleRepeatDay = (dayIndex) => {
+        const selectedDay = getSelectedDateDay();
+        if (dayIndex === selectedDay) return; // 선택한 날짜의 요일은 변경 불가
         if (repeatDays.includes(dayIndex)) {
           setRepeatDays(repeatDays.filter(d => d !== dayIndex));
         } else {
@@ -705,7 +717,17 @@
                           반복 예약
                         </label>
                         <button 
-                          onClick={() => setIsRepeatMode(!isRepeatMode)} 
+                          onClick={() => {
+                            if (!isRepeatMode) {
+                              const selectedDay = getSelectedDateDay();
+                              if (selectedDay !== null) {
+                                setRepeatDays([selectedDay]);
+                              }
+                            } else {
+                              setRepeatDays([]);
+                            }
+                            setIsRepeatMode(!isRepeatMode);
+                          }} 
                           className={`w-12 h-6 rounded-full transition-colors ${isRepeatMode ? 'bg-blue-500' : 'bg-gray-300'}`}
                         >
                           <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${isRepeatMode ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
@@ -717,19 +739,25 @@
                           <div>
                             <label className="block text-sm font-medium mb-2">반복 요일 선택</label>
                             <div className="flex gap-1">
-                              {dayNames.map((day, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => toggleRepeatDay(index)}
-                                  className={`flex-1 py-2 text-sm rounded-lg font-medium transition-colors ${
-                                    repeatDays.includes(index) 
-                                      ? 'bg-blue-500 text-white' 
-                                      : 'bg-white text-gray-600 border'
-                                  }`}
-                                >
-                                  {day}
-                                </button>
-                              ))}
+                              {dayNames.map((day, index) => {
+                                const isSelectedDay = index === getSelectedDateDay();
+                                const isActive = repeatDays.includes(index);
+                                return (
+                                  <button
+                                    key={index}
+                                    onClick={() => toggleRepeatDay(index)}
+                                    className={`flex-1 py-2 text-sm rounded-lg font-medium transition-colors ${
+                                      isActive 
+                                        ? isSelectedDay 
+                                          ? 'bg-blue-700 text-white cursor-not-allowed' 
+                                          : 'bg-blue-500 text-white'
+                                        : 'bg-white text-gray-600 border'
+                                    }`}
+                                  >
+                                    {day}{isSelectedDay && ' ✓'}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                           <div>
