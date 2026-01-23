@@ -73,7 +73,7 @@
 
       const venues = { '세마': ['단일구장'], '군포': ['1구장', '2구장'], '춘의': ['단일구장'] };
       const categories = { '대관': 'bg-green-500', '소셜매치': 'bg-blue-500', '아카데미': 'bg-purple-500' };
-      const timeSlots = Array.from({length: 36}, (_, i) => `${String(Math.floor(i/2) + 6).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
+      const timeSlots = Array.from({length: 48}, (_, i) => `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
 
       useEffect(() => { loadBookings(); }, []);
 
@@ -191,9 +191,10 @@
       };
 
       const calculateEndTime = (startTime) => {
-        const [h, m] = startTime.split(':').map(Number);
-        return `${String(h + 2).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      };
+  const [h, m] = startTime.split(':').map(Number);
+  const newH = (h + 2) % 24;
+  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
 
       const cancelBooking = async (id, reason) => {
         const booking = bookings.find(b => b.id === id);
