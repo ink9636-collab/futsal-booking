@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="풋살예약">
+  <meta name="apple-mobile-web-app-title" content="풋살공간">
   <title>풋살공간 예약관리</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,7 +25,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // 간단한 아이콘 컴포넌트들
     const Icon = ({ children, size = 24, className = "" }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
     );
@@ -36,8 +35,8 @@
     const EditIcon = ({ size, className }) => <Icon size={size} className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></Icon>;
     const TrashIcon = ({ size, className }) => <Icon size={size} className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
     const RefreshIcon = ({ size, className }) => <Icon size={size} className={className}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></Icon>;
+    const RepeatIcon = ({ size, className }) => <Icon size={size} className={className}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></Icon>;
 
-    // Supabase 설정
     const SUPABASE_URL = 'https://ltkjopawqjdzoqegbkaz.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0a2pvcGF3cWpkem9xZWdia2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwOTk2MjksImV4cCI6MjA4NDY3NTYyOX0.BknFqHiwMn2hxo_FRNbwMW3V-anq-EzpsUdhmb_cJw0';
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -70,41 +69,34 @@
       const [listVenue, setListVenue] = useState('전체');
       const [displayCount, setDisplayCount] = useState(20);
       const [editingBookingId, setEditingBookingId] = useState(null);
+      
+      // 반복 예약 관련 상태
+      const [isRepeatMode, setIsRepeatMode] = useState(false);
+      const [repeatDays, setRepeatDays] = useState([]);
+      const [repeatEndDate, setRepeatEndDate] = useState('');
+      const [showBulkCancelModal, setShowBulkCancelModal] = useState(null);
+      const [bulkCancelConfirm, setBulkCancelConfirm] = useState(false);
 
       const venues = { '세마': ['단일구장'], '군포': ['1구장', '2구장'], '춘의': ['단일구장'] };
       const categories = { '대관': 'bg-green-500', '소셜매치': 'bg-blue-500', '아카데미': 'bg-purple-500' };
       const timeSlots = Array.from({length: 48}, (_, i) => `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
       useEffect(() => { loadBookings(); }, []);
 
       const loadBookings = async () => {
         setLoading(true);
         try {
-          const { data, error } = await db
-            .from('bookings')
-            .select('*')
-            .order('date', { ascending: false });
-          
+          const { data, error } = await db.from('bookings').select('*').order('date', { ascending: false });
           if (error) throw error;
-          
           const formattedData = data.map(b => ({
-            id: b.id,
-            venue: b.venue,
-            court: b.court,
-            date: b.date,
-            startTime: b.start_time,
-            endTime: b.end_time,
-            category: b.category,
-            customerName: b.customer_name,
-            phone: b.phone || '',
-            route: b.route || '',
-            status: b.status,
-            cancelReason: b.cancel_reason,
-            createdAt: b.created_at,
-            updatedAt: b.updated_at,
-            cancelledAt: b.cancelled_at
+            id: b.id, venue: b.venue, court: b.court, date: b.date,
+            startTime: b.start_time, endTime: b.end_time, category: b.category,
+            customerName: b.customer_name, phone: b.phone || '', route: b.route || '',
+            status: b.status, cancelReason: b.cancel_reason,
+            repeatGroupId: b.repeat_group_id,
+            createdAt: b.created_at, updatedAt: b.updated_at, cancelledAt: b.cancelled_at
           }));
-          
           setBookings(formattedData);
         } catch (error) {
           console.error('Failed to load bookings:', error);
@@ -115,35 +107,21 @@
       const saveBooking = async (booking, isUpdate = false) => {
         try {
           const dbData = {
-            id: booking.id,
-            venue: booking.venue,
-            court: booking.court,
-            date: booking.date,
-            start_time: booking.startTime,
-            end_time: booking.endTime,
-            category: booking.category,
-            customer_name: booking.customerName,
-            phone: booking.phone || null,
-            route: booking.route || null,
-            status: booking.status,
-            cancel_reason: booking.cancelReason || null,
+            id: booking.id, venue: booking.venue, court: booking.court, date: booking.date,
+            start_time: booking.startTime, end_time: booking.endTime, category: booking.category,
+            customer_name: booking.customerName, phone: booking.phone || null, route: booking.route || null,
+            status: booking.status, cancel_reason: booking.cancelReason || null,
+            repeat_group_id: booking.repeatGroupId || null,
             updated_at: isUpdate ? new Date().toISOString() : null,
             cancelled_at: booking.cancelledAt || null
           };
-
           if (isUpdate) {
-            const { error } = await db
-              .from('bookings')
-              .update(dbData)
-              .eq('id', booking.id);
+            const { error } = await db.from('bookings').update(dbData).eq('id', booking.id);
             if (error) throw error;
           } else {
-            const { error } = await db
-              .from('bookings')
-              .insert(dbData);
+            const { error } = await db.from('bookings').insert(dbData);
             if (error) throw error;
           }
-          
           await loadBookings();
           return true;
         } catch (error) {
@@ -153,11 +131,28 @@
         }
       };
 
+      const saveMultipleBookings = async (bookingsToSave) => {
+        try {
+          const dbDataArray = bookingsToSave.map(booking => ({
+            id: booking.id, venue: booking.venue, court: booking.court, date: booking.date,
+            start_time: booking.startTime, end_time: booking.endTime, category: booking.category,
+            customer_name: booking.customerName, phone: booking.phone || null, route: booking.route || null,
+            status: booking.status, cancel_reason: booking.cancelReason || null,
+            repeat_group_id: booking.repeatGroupId || null
+          }));
+          const { error } = await db.from('bookings').insert(dbDataArray);
+          if (error) throw error;
+          await loadBookings();
+          return true;
+        } catch (error) {
+          console.error('Failed to save bookings:', error);
+          alert('저장에 실패했습니다.');
+          return false;
+        }
+      };
+
       const checkTimeOverlap = (booking, excludeId = null) => {
-        const timeToMinutes = (time) => {
-          const [h, m] = time.split(':').map(Number);
-          return h * 60 + m;
-        };
+        const timeToMinutes = (time) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
         const newStart = timeToMinutes(booking.startTime);
         const newEnd = timeToMinutes(booking.endTime);
         return bookings.find(b => {
@@ -168,18 +163,69 @@
         });
       };
 
+      const getRepeatDates = (startDate, endDate, selectedDays) => {
+        const dates = [];
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const current = new Date(start);
+        while (current <= end) {
+          if (selectedDays.includes(current.getDay())) {
+            dates.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`);
+          }
+          current.setDate(current.getDate() + 1);
+        }
+        return dates;
+      };
+
       const addBooking = async () => {
         if (!newBooking.date || !newBooking.customerName) { setRequiredAlert(true); return; }
-        const overlapping = checkTimeOverlap(newBooking, editingBookingId);
-        if (overlapping) { setOverlapAlert(overlapping); return; }
-        const bookingData = { ...newBooking, id: isEditMode ? editingBookingId : Date.now() };
-        const success = await saveBooking(bookingData, isEditMode);
-        if (success) {
-          setShowModal(false);
-          setIsEditMode(false);
-          setEditingBookingId(null);
-          setNewBooking({ venue: '세마', court: '단일구장', date: '', startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
+        
+        if (isRepeatMode && repeatDays.length > 0 && repeatEndDate) {
+          const repeatDates = getRepeatDates(newBooking.date, repeatEndDate, repeatDays);
+          const repeatGroupId = Date.now();
+          const bookingsToCreate = [];
+          const overlappingDates = [];
+          
+          for (const date of repeatDates) {
+            const bookingForDate = { ...newBooking, date, id: Date.now() + Math.random(), repeatGroupId };
+            const overlap = checkTimeOverlap(bookingForDate);
+            if (overlap) {
+              overlappingDates.push(date);
+            } else {
+              bookingsToCreate.push(bookingForDate);
+            }
+          }
+          
+          if (overlappingDates.length > 0) {
+            alert(`다음 날짜에 중복 예약이 있어 제외됩니다:\n${overlappingDates.join('\n')}`);
+          }
+          
+          if (bookingsToCreate.length > 0) {
+            const success = await saveMultipleBookings(bookingsToCreate);
+            if (success) {
+              alert(`${bookingsToCreate.length}개의 예약이 생성되었습니다.`);
+              resetModal();
+            }
+          } else {
+            alert('생성할 수 있는 예약이 없습니다.');
+          }
+        } else {
+          const overlapping = checkTimeOverlap(newBooking, editingBookingId);
+          if (overlapping) { setOverlapAlert(overlapping); return; }
+          const bookingData = { ...newBooking, id: isEditMode ? editingBookingId : Date.now() };
+          const success = await saveBooking(bookingData, isEditMode);
+          if (success) resetModal();
         }
+      };
+
+      const resetModal = () => {
+        setShowModal(false);
+        setIsEditMode(false);
+        setEditingBookingId(null);
+        setIsRepeatMode(false);
+        setRepeatDays([]);
+        setRepeatEndDate('');
+        setNewBooking({ venue: '세마', court: '단일구장', date: '', startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
       };
 
       const openEditModal = (booking) => {
@@ -191,10 +237,10 @@
       };
 
       const calculateEndTime = (startTime) => {
-  const [h, m] = startTime.split(':').map(Number);
-  const newH = (h + 2) % 24;
-  return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-};
+        const [h, m] = startTime.split(':').map(Number);
+        const newH = (h + 2) % 24;
+        return `${String(newH).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
 
       const cancelBooking = async (id, reason) => {
         const booking = bookings.find(b => b.id === id);
@@ -204,6 +250,53 @@
         setSelectedBooking(null);
         setShowCancelModal(null);
         setCancelReason('');
+      };
+
+      const handleCancelClick = (booking) => {
+        if (booking.repeatGroupId) {
+          const futureBookings = bookings.filter(b => 
+            b.repeatGroupId === booking.repeatGroupId && 
+            b.status === 'active' && 
+            b.date >= booking.date &&
+            b.id !== booking.id
+          );
+          if (futureBookings.length > 0) {
+            setShowBulkCancelModal({ booking, futureCount: futureBookings.length });
+            setSelectedBooking(null);
+            return;
+          }
+        }
+        setShowCancelModal(booking);
+        setSelectedBooking(null);
+      };
+
+      const cancelSingleBooking = () => {
+        setShowCancelModal(showBulkCancelModal.booking);
+        setShowBulkCancelModal(null);
+      };
+
+      const cancelAllFutureBookings = async () => {
+        if (!bulkCancelConfirm) {
+          setBulkCancelConfirm(true);
+          return;
+        }
+        
+        const booking = showBulkCancelModal.booking;
+        try {
+          const { error } = await db.from('bookings')
+            .delete()
+            .eq('repeat_group_id', booking.repeatGroupId)
+            .gte('date', booking.date);
+          
+          if (error) throw error;
+          await loadBookings();
+          alert('일괄 취소가 완료되었습니다.');
+        } catch (error) {
+          console.error('Failed to bulk cancel:', error);
+          alert('일괄 취소에 실패했습니다.');
+        }
+        setShowBulkCancelModal(null);
+        setBulkCancelConfirm(false);
       };
 
       const deleteBooking = async () => {
@@ -230,10 +323,20 @@
         else setNewBooking({ ...newBooking, category, customerName: '', route: '전화' });
       };
 
+      const toggleRepeatDay = (dayIndex) => {
+        if (repeatDays.includes(dayIndex)) {
+          setRepeatDays(repeatDays.filter(d => d !== dayIndex));
+        } else {
+          setRepeatDays([...repeatDays, dayIndex]);
+        }
+      };
+
       const openDateModal = (date) => {
-        if (selectedVenue === '전체') { alert('예약을 추가하려면 특정 구장을 선택해주세요.'); return; }
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         setIsEditMode(false);
+        setIsRepeatMode(false);
+        setRepeatDays([]);
+        setRepeatEndDate('');
         setNewBooking({ venue: selectedVenue, court: selectedCourt, date: dateStr, startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
         setShowModal(true);
       };
@@ -261,7 +364,6 @@
 
       const getDayBookings = (date) => {
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        if (selectedVenue === '전체') return bookings.filter(b => b.date === dateStr).sort((a, b) => a.startTime.localeCompare(b.startTime));
         return bookings.filter(b => {
           if (b.date !== dateStr || b.venue !== selectedVenue) return false;
           if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
@@ -310,7 +412,10 @@
               <div className="space-y-0.5">
                 {dayBookings.map(b => (
                   <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
-                    <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
+                    <div className="flex items-center gap-0.5">
+                      {b.repeatGroupId && <span>🔁</span>}
+                      <span>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -326,8 +431,8 @@
           <div className="text-2xl font-bold mb-2">{value}건</div>
           {category === 'total' && stats && (
             <div className="mt-3 pt-3 border-t border-gray-300 space-y-2">
-              <div className="flex justify-between"><span className="text-sm text-gray-700">대관</span><span className="font-bold text-blue-600">{stats.categoryStats['대관']}건</span></div>
-              <div className="flex justify-between"><span className="text-sm text-gray-700">소셜매치</span><span className="font-bold text-green-600">{stats.categoryStats['소셜매치']}건</span></div>
+              <div className="flex justify-between"><span className="text-sm text-gray-700">대관</span><span className="font-bold text-green-600">{stats.categoryStats['대관']}건</span></div>
+              <div className="flex justify-between"><span className="text-sm text-gray-700">소셜매치</span><span className="font-bold text-blue-600">{stats.categoryStats['소셜매치']}건</span></div>
               <div className="flex justify-between"><span className="text-sm text-gray-700">아카데미</span><span className="font-bold text-purple-600">{stats.categoryStats['아카데미']}건</span></div>
             </div>
           )}
@@ -385,7 +490,13 @@
                         {displayed.map(b => (
                           <div key={b.id} className="p-4 cursor-pointer" onClick={() => setSelectedBooking(b)}>
                             <div className="flex justify-between items-start mb-2">
-                              <div><div className="font-semibold">{b.customerName}</div><div className="text-sm text-gray-600">{b.venue} {b.court}</div></div>
+                              <div>
+                                <div className="font-semibold flex items-center gap-1">
+                                  {b.repeatGroupId && <span>🔁</span>}
+                                  {b.customerName}
+                                </div>
+                                <div className="text-sm text-gray-600">{b.venue} {b.court}</div>
+                              </div>
                               <div className="text-sm text-gray-600">{b.date}</div>
                             </div>
                             <div className="flex justify-between text-sm text-gray-600">
@@ -419,6 +530,7 @@
                     <p><span className="text-gray-600">예약자:</span> {selectedBooking.customerName}</p>
                     <p><span className="text-gray-600">연락처:</span> {selectedBooking.phone || '-'}</p>
                     <p><span className="text-gray-600">예약 루트:</span> {selectedBooking.route || '-'}</p>
+                    {selectedBooking.repeatGroupId && <p><span className="text-gray-600">반복 예약:</span> 🔁 예</p>}
                   </div>
                 </div>
               </div>
@@ -531,21 +643,19 @@
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
                   <button onClick={loadBookings} className="p-2 rounded-full"><RefreshIcon size={20} className="text-blue-500" /></button>
-                  <h1 className="text-xl font-bold">예약관리</h1>
+                  <h1 className="text-xl font-bold">풋살공간 예약관리</h1>
                   <div className="flex gap-2">
                     <button onClick={() => setView('list')} className="p-2 rounded-full"><ListIcon size={24} className="text-blue-500" /></button>
                     <button onClick={() => setView('stats')} className="p-2 rounded-full"><BarChartIcon size={24} className="text-blue-500" /></button>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <select value={selectedVenue} onChange={(e) => { setSelectedVenue(e.target.value); if (e.target.value !== '전체') setSelectedCourt(venues[e.target.value][0]); }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                  <select value={selectedVenue} onChange={(e) => { setSelectedVenue(e.target.value); setSelectedCourt(venues[e.target.value][0]); }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
                     {Object.keys(venues).map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
-                  {selectedVenue !== '전체' && (
-                    <select value={selectedCourt} onChange={(e) => setSelectedCourt(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                      {venues[selectedVenue].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  )}
+                  <select value={selectedCourt} onChange={(e) => setSelectedCourt(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                    {venues[selectedVenue].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="px-4 pb-3 flex items-center justify-between">
@@ -567,7 +677,7 @@
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
               <div className="bg-white rounded-t-3xl w-full max-w-2xl mx-auto max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-                  <button onClick={() => { setShowModal(false); setIsEditMode(false); setEditingBookingId(null); setNewBooking({ venue: '세마', court: '단일구장', date: '', startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' }); }} className="text-blue-500 font-medium">취소</button>
+                  <button onClick={resetModal} className="text-blue-500 font-medium">취소</button>
                   <h3 className="text-lg font-bold">{isEditMode ? '예약 수정' : '새 예약'}</h3>
                   <button onClick={addBooking} className="text-blue-500 font-medium">완료</button>
                 </div>
@@ -586,6 +696,61 @@
                   <div><label className="block text-sm font-medium mb-1.5">연락처 <span className="text-xs text-gray-500">(선택사항)</span></label><input type="tel" value={newBooking.phone} onChange={(e) => setNewBooking({...newBooking, phone: e.target.value.replace(/[^0-9]/g, '')})} className="w-full border rounded-lg px-3 py-2.5" placeholder="01012345678" inputMode="numeric" /></div>
                   {newBooking.category !== '소셜매치' && newBooking.category !== '아카데미' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><select value={newBooking.route} onChange={(e) => setNewBooking({...newBooking, route: e.target.value})} className="w-full border rounded-lg px-3 py-2.5"><option value="전화">전화</option><option value="문자">문자</option><option value="카카오톡채널">카카오톡채널</option><option value="네이버대관">네이버대관</option><option value="플랩대관">플랩대관</option></select></div>)}
                   {newBooking.category === '소셜매치' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><input type="text" value="소셜" disabled className="w-full border rounded-lg px-3 py-2.5 bg-gray-100" /></div>)}
+                  
+                  {!isEditMode && (
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium flex items-center gap-2">
+                          <RepeatIcon size={18} className="text-blue-500" />
+                          반복 예약
+                        </label>
+                        <button 
+                          onClick={() => setIsRepeatMode(!isRepeatMode)} 
+                          className={`w-12 h-6 rounded-full transition-colors ${isRepeatMode ? 'bg-blue-500' : 'bg-gray-300'}`}
+                        >
+                          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${isRepeatMode ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                        </button>
+                      </div>
+                      
+                      {isRepeatMode && (
+                        <div className="space-y-3 bg-blue-50 p-3 rounded-lg">
+                          <div>
+                            <label className="block text-sm font-medium mb-2">반복 요일 선택</label>
+                            <div className="flex gap-1">
+                              {dayNames.map((day, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => toggleRepeatDay(index)}
+                                  className={`flex-1 py-2 text-sm rounded-lg font-medium transition-colors ${
+                                    repeatDays.includes(index) 
+                                      ? 'bg-blue-500 text-white' 
+                                      : 'bg-white text-gray-600 border'
+                                  }`}
+                                >
+                                  {day}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1.5">반복 종료일</label>
+                            <input 
+                              type="date" 
+                              value={repeatEndDate} 
+                              onChange={(e) => setRepeatEndDate(e.target.value)} 
+                              min={newBooking.date}
+                              className="w-full border rounded-lg px-3 py-2.5" 
+                            />
+                          </div>
+                          {repeatDays.length > 0 && repeatEndDate && newBooking.date && (
+                            <div className="text-sm text-blue-600 bg-white p-2 rounded">
+                              📅 {getRepeatDates(newBooking.date, repeatEndDate, repeatDays).length}개의 예약이 생성됩니다
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -607,11 +772,12 @@
                   <p><span className="text-gray-600">연락처:</span> {selectedBooking.phone || '-'}</p>
                   <p><span className="text-gray-600">예약 루트:</span> {selectedBooking.route || '-'}</p>
                   <p><span className="text-gray-600">상태:</span> {selectedBooking.status === 'active' ? '활성' : '취소됨'}</p>
+                  {selectedBooking.repeatGroupId && <p><span className="text-gray-600">반복 예약:</span> 🔁 예</p>}
                 </div>
                 {selectedBooking.status === 'active' && (
                   <div className="p-4 border-t flex gap-3">
                     <button onClick={() => openEditModal(selectedBooking)} className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"><EditIcon size={18} /> 예약 수정</button>
-                    <button onClick={() => { setShowCancelModal(selectedBooking); setSelectedBooking(null); }} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"><XIcon size={18} /> 예약 취소</button>
+                    <button onClick={() => handleCancelClick(selectedBooking)} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"><XIcon size={18} /> 예약 취소</button>
                   </div>
                 )}
               </div>
@@ -642,6 +808,39 @@
                   <button onClick={() => cancelBooking(showCancelModal.id, cancelReason)} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-semibold">취소 확인</button>
                   <button onClick={() => { setShowCancelModal(null); setCancelReason(''); }} className="flex-1 bg-gray-200 py-3 rounded-lg font-semibold">닫기</button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {showBulkCancelModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+                <h3 className="text-lg font-bold mb-4">반복 예약 취소</h3>
+                {!bulkCancelConfirm ? (
+                  <>
+                    <p className="mb-4 text-sm text-gray-600">
+                      이 예약은 반복 예약입니다.<br/>
+                      이후 동일한 일정이 <strong>{showBulkCancelModal.futureCount}개</strong> 더 있습니다.
+                    </p>
+                    <div className="space-y-2">
+                      <button onClick={cancelSingleBooking} className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold">이 일정만 취소</button>
+                      <button onClick={cancelAllFutureBookings} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">이후 일정 모두 취소</button>
+                      <button onClick={() => { setShowBulkCancelModal(null); setBulkCancelConfirm(false); }} className="w-full bg-gray-200 py-3 rounded-lg font-semibold">뒤로가기</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-red-600 font-medium">⚠️ 주의</p>
+                      <p className="text-sm text-red-600 mt-1">일괄 취소하게 되면 해당 취소는 복구되지 않습니다.</p>
+                      <p className="text-sm text-red-600 mt-1">실행하시겠습니까?</p>
+                    </div>
+                    <div className="space-y-2">
+                      <button onClick={cancelAllFutureBookings} className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold">일정 취소</button>
+                      <button onClick={() => { setShowBulkCancelModal(null); setBulkCancelConfirm(false); }} className="w-full bg-gray-200 py-3 rounded-lg font-semibold">뒤로가기</button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
