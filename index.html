@@ -438,10 +438,7 @@
               <div className="space-y-0.5">
                 {dayBookings.map(b => (
                   <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
-                    <div className="flex items-center gap-0.5">
-                      {b.repeatGroupId && <span>🔁</span>}
-                      <span>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</span>
-                    </div>
+                    <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
                   </div>
                 ))}
               </div>
@@ -668,11 +665,13 @@
             <div className="bg-white border-b">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={loadBookings} className="p-2 rounded-full"><RefreshIcon size={20} className="text-blue-500" /></button>
+                  <div className="w-20 flex justify-start">
+                    <button onClick={loadBookings} className="p-2 rounded-full"><RefreshIcon size={20} className="text-blue-500" /></button>
+                  </div>
                   <h1 className="text-xl font-bold">풋살공간 예약관리</h1>
-                  <div className="flex gap-2">
-                    <button onClick={() => setView('list')} className="p-2 rounded-full"><ListIcon size={24} className="text-blue-500" /></button>
-                    <button onClick={() => setView('stats')} className="p-2 rounded-full"><BarChartIcon size={24} className="text-blue-500" /></button>
+                  <div className="w-20 flex justify-end gap-1">
+                    <button onClick={() => setView('list')} className="p-2 rounded-full"><ListIcon size={20} className="text-blue-500" /></button>
+                    <button onClick={() => setView('stats')} className="p-2 rounded-full"><BarChartIcon size={20} className="text-blue-500" /></button>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -700,9 +699,9 @@
           </div>
 
           {showModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50">
-              <div className="bg-white rounded-t-3xl w-full max-w-2xl mx-auto max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center pt-10 z-50 overflow-y-auto">
+              <div className="bg-white rounded-2xl w-full max-w-md mx-4 mb-10 max-h-[85vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center rounded-t-2xl">
                   <button onClick={resetModal} className="text-blue-500 font-medium">취소</button>
                   <h3 className="text-lg font-bold">{isEditMode ? '예약 수정' : '새 예약'}</h3>
                   <button onClick={addBooking} className="text-blue-500 font-medium">완료</button>
