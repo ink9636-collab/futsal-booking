@@ -85,8 +85,6 @@
       const timeSlots = Array.from({length: 48}, (_, i) => `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-      useEffect(() => { loadBookings(); }, []);
-
       const checkAppPassword = () => {
         if (appPassword === '1379') {
           setIsAuthenticated(true);
@@ -95,6 +93,28 @@
           setPasswordError(true);
         }
       };
+
+      const loadBookings = async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await db.from('bookings').select('*').order('date', { ascending: false });
+          if (error) throw error;
+          const formattedData = data.map(b => ({
+            id: b.id, venue: b.venue, court: b.court, date: b.date,
+            startTime: b.start_time, endTime: b.end_time, category: b.category,
+            customerName: b.customer_name, phone: b.phone || '', route: b.route || '',
+            status: b.status, cancelReason: b.cancel_reason,
+            repeatGroupId: b.repeat_group_id,
+            createdAt: b.created_at, updatedAt: b.updated_at, cancelledAt: b.cancelled_at
+          }));
+          setBookings(formattedData);
+        } catch (error) {
+          console.error('Failed to load bookings:', error);
+        }
+        setLoading(false);
+      };
+
+      useEffect(() => { if (isAuthenticated) loadBookings(); }, [isAuthenticated]);
 
       if (!isAuthenticated) {
         return (
@@ -126,26 +146,6 @@
           </div>
         );
       }
-
-      const loadBookings = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await db.from('bookings').select('*').order('date', { ascending: false });
-          if (error) throw error;
-          const formattedData = data.map(b => ({
-            id: b.id, venue: b.venue, court: b.court, date: b.date,
-            startTime: b.start_time, endTime: b.end_time, category: b.category,
-            customerName: b.customer_name, phone: b.phone || '', route: b.route || '',
-            status: b.status, cancelReason: b.cancel_reason,
-            repeatGroupId: b.repeat_group_id,
-            createdAt: b.created_at, updatedAt: b.updated_at, cancelledAt: b.cancelled_at
-          }));
-          setBookings(formattedData);
-        } catch (error) {
-          console.error('Failed to load bookings:', error);
-        }
-        setLoading(false);
-      };
 
       const saveBooking = async (booking, isUpdate = false) => {
         try {
