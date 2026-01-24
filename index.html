@@ -42,6 +42,9 @@
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const FutsalBookingSystem = () => {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [appPassword, setAppPassword] = useState('');
+      const [passwordError, setPasswordError] = useState(false);
       const [selectedVenue, setSelectedVenue] = useState('세마');
       const [selectedCourt, setSelectedCourt] = useState('단일구장');
       const [currentDate, setCurrentDate] = useState(new Date());
@@ -78,11 +81,51 @@
       const [bulkCancelConfirm, setBulkCancelConfirm] = useState(false);
 
       const venues = { '세마': ['단일구장'], '군포': ['1구장', '2구장'], '춘의': ['단일구장'] };
-      const categories = { '대관': 'bg-green-500', '소셜매치': 'bg-blue-500', '아카데미': 'bg-purple-500' };
+      const categories = { '대관': 'bg-green-500', '소셜매치': 'bg-blue-500', '아카데미': 'bg-purple-500', '자체프로그램': 'bg-orange-500' };
       const timeSlots = Array.from({length: 48}, (_, i) => `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
       useEffect(() => { loadBookings(); }, []);
+
+      const checkAppPassword = () => {
+        if (appPassword === '1379') {
+          setIsAuthenticated(true);
+          setPasswordError(false);
+        } else {
+          setPasswordError(true);
+        }
+      };
+
+      if (!isAuthenticated) {
+        return (
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
+              <h1 className="text-xl font-bold text-center mb-6">풋살공간 예약관리</h1>
+              <p className="text-sm text-gray-600 text-center mb-4">비밀번호를 입력하세요</p>
+              <input 
+                type="password" 
+                inputMode="numeric"
+                value={appPassword} 
+                onChange={(e) => {
+                  setAppPassword(e.target.value.replace(/[^0-9]/g, ''));
+                  setPasswordError(false);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && checkAppPassword()}
+                className={`w-full border rounded-lg px-4 py-3 mb-3 text-center text-lg ${passwordError ? 'border-red-500' : ''}`}
+                placeholder="••••"
+                autoFocus
+              />
+              {passwordError && <p className="text-red-500 text-sm text-center mb-3">비밀번호가 올바르지 않습니다</p>}
+              <button 
+                onClick={checkAppPassword}
+                className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold"
+              >
+                입장하기
+              </button>
+            </div>
+          </div>
+        );
+      }
 
       const loadBookings = async () => {
         setLoading(true);
@@ -339,6 +382,7 @@
       const handleCategoryChange = (category) => {
         if (category === '소셜매치') setNewBooking({ ...newBooking, category, customerName: '플랩풋볼', phone: '', route: '소셜' });
         else if (category === '아카데미') setNewBooking({ ...newBooking, category, customerName: '', route: '' });
+        else if (category === '자체프로그램') setNewBooking({ ...newBooking, category, customerName: '', route: '직접' });
         else setNewBooking({ ...newBooking, category, customerName: '', route: '전화' });
       };
 
@@ -648,7 +692,7 @@
                 <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
                   <h3 className="text-lg font-bold mb-4">예약 삭제</h3>
                   <p className="mb-4 text-sm text-gray-600">비밀번호를 입력하세요.</p>
-                  <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full border rounded-lg px-4 py-3 mb-4" placeholder="비밀번호" />
+                  <input type="password" inputMode="numeric" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value.replace(/[^0-9]/g, ''))} className="w-full border rounded-lg px-4 py-3 mb-4" placeholder="비밀번호" />
                   <div className="flex gap-2">
                     <button onClick={deleteBooking} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-semibold">삭제</button>
                     <button onClick={() => { setDeleteId(null); setDeletePassword(''); }} className="flex-1 bg-gray-200 py-3 rounded-lg font-semibold">취소</button>
@@ -720,8 +764,9 @@
                   <div><label className="block text-sm font-medium mb-1.5">카테고리</label><select value={newBooking.category} onChange={(e) => handleCategoryChange(e.target.value)} className="w-full border rounded-lg px-3 py-2.5">{Object.keys(categories).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
                   <div><label className="block text-sm font-medium mb-1.5">예약자명 * {newBooking.category === '소셜매치' && <span className="text-xs text-gray-500">(자동: 플랩풋볼)</span>}</label><input type="text" value={newBooking.customerName} onChange={(e) => setNewBooking({...newBooking, customerName: e.target.value})} disabled={newBooking.category === '소셜매치'} className="w-full border rounded-lg px-3 py-2.5 disabled:bg-gray-100" placeholder="홍길동" /></div>
                   <div><label className="block text-sm font-medium mb-1.5">연락처 <span className="text-xs text-gray-500">(선택사항)</span></label><input type="tel" value={newBooking.phone} onChange={(e) => setNewBooking({...newBooking, phone: e.target.value.replace(/[^0-9]/g, '')})} className="w-full border rounded-lg px-3 py-2.5" placeholder="01012345678" inputMode="numeric" /></div>
-                  {newBooking.category !== '소셜매치' && newBooking.category !== '아카데미' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><select value={newBooking.route} onChange={(e) => setNewBooking({...newBooking, route: e.target.value})} className="w-full border rounded-lg px-3 py-2.5"><option value="전화">전화</option><option value="문자">문자</option><option value="카카오톡채널">카카오톡채널</option><option value="네이버대관">네이버대관</option><option value="플랩대관">플랩대관</option></select></div>)}
+                  {newBooking.category !== '소셜매치' && newBooking.category !== '아카데미' && newBooking.category !== '자체프로그램' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><select value={newBooking.route} onChange={(e) => setNewBooking({...newBooking, route: e.target.value})} className="w-full border rounded-lg px-3 py-2.5"><option value="전화">전화</option><option value="문자">문자</option><option value="카카오톡채널">카카오톡채널</option><option value="네이버대관">네이버대관</option><option value="플랩대관">플랩대관</option></select></div>)}
                   {newBooking.category === '소셜매치' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><input type="text" value="소셜" disabled className="w-full border rounded-lg px-3 py-2.5 bg-gray-100" /></div>)}
+                  {newBooking.category === '자체프로그램' && (<div><label className="block text-sm font-medium mb-1.5">예약 루트</label><input type="text" value="직접" disabled className="w-full border rounded-lg px-3 py-2.5 bg-gray-100" /></div>)}
                   
                   {!isEditMode && (
                     <div className="border-t pt-4">
