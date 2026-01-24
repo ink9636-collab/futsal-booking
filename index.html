@@ -64,7 +64,7 @@
       const [cancelReason, setCancelReason] = useState('');
       const [requiredAlert, setRequiredAlert] = useState(false);
       const [newBooking, setNewBooking] = useState({
-        venue: '세마', court: '단일구장', date: '', startTime: '06:00', endTime: '08:00',
+        venue: '세마', court: '단일구장', date: '', startTime: '18:00', endTime: '20:00',
         category: '대관', customerName: '', phone: '', route: '전화', status: 'active'
       });
       const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
@@ -273,7 +273,7 @@
         setIsRepeatMode(false);
         setRepeatDays([]);
         setRepeatEndDate('');
-        setNewBooking({ venue: '세마', court: '단일구장', date: '', startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
+        setNewBooking({ venue: '세마', court: '단일구장', date: '', startTime: '18:00', endTime: '20:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
       };
 
       const openEditModal = (booking) => {
@@ -407,7 +407,7 @@
         setIsRepeatMode(false);
         setRepeatDays([]);
         setRepeatEndDate('');
-        setNewBooking({ venue: selectedVenue, court: selectedCourt, date: dateStr, startTime: '06:00', endTime: '08:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
+        setNewBooking({ venue: selectedVenue, court: selectedCourt, date: dateStr, startTime: '18:00', endTime: '20:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
         setShowModal(true);
       };
 
@@ -529,6 +529,7 @@
           if (b.status !== 'active') return false;
           if (b.category === '소셜매치') return false;
           if (b.category === '아카데미') return false;
+          if (b.category === '자체프로그램') return false;
           if (listVenue !== '전체' && b.venue !== listVenue) return false;
           if (searchQuery.trim() && !b.customerName.includes(searchQuery.trim()) && !(b.phone && b.phone.includes(searchQuery.trim()))) return false;
           return true;
