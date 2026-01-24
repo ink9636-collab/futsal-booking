@@ -426,6 +426,7 @@
           filtered = filtered.filter(b => {
             if (b.venue !== selectedVenue) return false;
             if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
+            if (selectedVenue === '군포' && selectedCourt === '전체') return b.court === '1구장' || b.court === '2구장';
             return b.court === selectedCourt;
           });
         }
@@ -464,6 +465,7 @@
           filtered = filtered.filter(b => {
             if (b.venue !== selectedVenue) return false;
             if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
+            if (selectedVenue === '군포' && selectedCourt === '전체') return b.court === '1구장' || b.court === '2구장';
             return b.court === selectedCourt;
           });
         }
@@ -471,8 +473,8 @@
         const cancelled = filtered.filter(b => b.status === 'cancelled');
         return {
           total: active.length, cancelled: cancelled.length,
-          cancelledByCategory: { '대관': cancelled.filter(b => b.category === '대관').length, '소셜매치': cancelled.filter(b => b.category === '소셜매치').length, '아카데미': cancelled.filter(b => b.category === '아카데미').length },
-          categoryStats: { '대관': active.filter(b => b.category === '대관').length, '소셜매치': active.filter(b => b.category === '소셜매치').length, '아카데미': active.filter(b => b.category === '아카데미').length }
+          cancelledByCategory: { '대관': cancelled.filter(b => b.category === '대관').length, '소셜매치': cancelled.filter(b => b.category === '소셜매치').length, '아카데미': cancelled.filter(b => b.category === '아카데미').length, '자체프로그램': cancelled.filter(b => b.category === '자체프로그램').length },
+          categoryStats: { '대관': active.filter(b => b.category === '대관').length, '소셜매치': active.filter(b => b.category === '소셜매치').length, '아카데미': active.filter(b => b.category === '아카데미').length, '자체프로그램': active.filter(b => b.category === '자체프로그램').length }
         };
       };
 
@@ -540,6 +542,7 @@
               <div className="flex justify-between"><span className="text-sm text-gray-700">대관</span><span className="font-bold text-green-600">{stats.categoryStats['대관']}건</span></div>
               <div className="flex justify-between"><span className="text-sm text-gray-700">소셜매치</span><span className="font-bold text-blue-600">{stats.categoryStats['소셜매치']}건</span></div>
               <div className="flex justify-between"><span className="text-sm text-gray-700">아카데미</span><span className="font-bold text-purple-600">{stats.categoryStats['아카데미']}건</span></div>
+              <div className="flex justify-between"><span className="text-sm text-gray-700">자체프로그램</span><span className="font-bold text-orange-600">{stats.categoryStats['자체프로그램']}건</span></div>
             </div>
           )}
           {category === 'cancelled' && cancelledByCategory && (
@@ -547,6 +550,7 @@
               <div className="flex justify-between"><span className="text-sm text-gray-700">대관</span><span className="font-bold text-red-600">{cancelledByCategory['대관']}건</span></div>
               <div className="flex justify-between"><span className="text-sm text-gray-700">소셜매치</span><span className="font-bold text-red-600">{cancelledByCategory['소셜매치']}건</span></div>
               <div className="flex justify-between"><span className="text-sm text-gray-700">아카데미</span><span className="font-bold text-red-600">{cancelledByCategory['아카데미']}건</span></div>
+              <div className="flex justify-between"><span className="text-sm text-gray-700">자체프로그램</span><span className="font-bold text-red-600">{cancelledByCategory['자체프로그램']}건</span></div>
             </div>
           )}
         </div>
