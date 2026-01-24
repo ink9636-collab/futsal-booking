@@ -436,6 +436,16 @@
         setShowDetailModal(true);
       };
 
+      const sortByTime = (a, b) => {
+        const getMinutes = (time) => {
+          const [h, m] = time.split(':').map(Number);
+          // 00:00~05:59는 24:00~29:59로 취급
+          const adjustedH = h < 6 ? h + 24 : h;
+          return adjustedH * 60 + m;
+        };
+        return getMinutes(a.startTime) - getMinutes(b.startTime);
+      };
+
       const getDayBookings = (date) => {
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         if (selectedVenue === '군포' && selectedCourt === '전체') {
@@ -443,14 +453,14 @@
           return bookings.filter(b => b.date === dateStr && b.venue === '군포')
             .sort((a, b) => {
               if (a.court !== b.court) return a.court === '1구장' ? -1 : 1;
-              return a.startTime.localeCompare(b.startTime);
+              return sortByTime(a, b);
             });
         }
         return bookings.filter(b => {
           if (b.date !== dateStr || b.venue !== selectedVenue) return false;
           if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
           return b.court === selectedCourt;
-        }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+        }).sort(sortByTime);
       };
 
       const getStats = (period, isAllVenues = false) => {
@@ -690,9 +700,21 @@
                     </div>
                   </div>
                   {custom && (
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <StatCard title="진행" value={custom.total} period="custom" category="total" bgColor="bg-blue-50" isAllVenues={selectedVenue === '전체'} cancelledByCategory={custom.cancelledByCategory} stats={custom} />
-                      <StatCard title="취소" value={custom.cancelled} period="custom" category="cancelled" bgColor="bg-red-50" isAllVenues={selectedVenue === '전체'} cancelledByCategory={custom.cancelledByCategory} />
+                    <div className="space-y-2 mt-3">
+                      <div className="bg-gray-100 p-4 rounded-xl">
+                        <div className="text-sm text-gray-600 mb-1">전체</div>
+                        <div className="text-2xl font-bold mb-2">{custom.total + custom.cancelled}건</div>
+                        <div className="mt-3 pt-3 border-t border-gray-300 space-y-2">
+                          <div className="flex justify-between"><span className="text-sm text-gray-700">대관</span><span className="font-bold text-green-600">{custom.categoryStats['대관'] + custom.cancelledByCategory['대관']}건</span></div>
+                          <div className="flex justify-between"><span className="text-sm text-gray-700">소셜매치</span><span className="font-bold text-blue-600">{custom.categoryStats['소셜매치'] + custom.cancelledByCategory['소셜매치']}건</span></div>
+                          <div className="flex justify-between"><span className="text-sm text-gray-700">아카데미</span><span className="font-bold text-purple-600">{custom.categoryStats['아카데미'] + custom.cancelledByCategory['아카데미']}건</span></div>
+                          <div className="flex justify-between"><span className="text-sm text-gray-700">자체프로그램</span><span className="font-bold text-orange-600">{custom.categoryStats['자체프로그램'] + custom.cancelledByCategory['자체프로그램']}건</span></div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <StatCard title="진행" value={custom.total} period="custom" category="total" bgColor="bg-blue-50" isAllVenues={selectedVenue === '전체'} cancelledByCategory={custom.cancelledByCategory} stats={custom} />
+                        <StatCard title="취소" value={custom.cancelled} period="custom" category="cancelled" bgColor="bg-red-50" isAllVenues={selectedVenue === '전체'} cancelledByCategory={custom.cancelledByCategory} />
+                      </div>
                     </div>
                   )}
                 </div>
