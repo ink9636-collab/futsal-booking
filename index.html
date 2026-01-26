@@ -218,18 +218,21 @@
       };
 
       const sendNewBookingNotification = async (booking) => {
-        const message = `📅 새 예약이 등록되었습니다
+        let message = `📅 새 예약이 등록되었습니다
 
 • 구장: ${booking.venue} ${booking.court}
 • 날짜: ${booking.date}
 • 시간: ${booking.startTime} - ${booking.endTime}
 • 예약자: ${booking.customerName}
 • 카테고리: ${booking.category}`;
+        if (booking.category === '대관' && booking.phone) {
+          message += `\n• 연락처: ${booking.phone}`;
+        }
         await sendKakaoWorkMessage(message);
       };
 
       const sendRepeatBookingNotification = async (booking, repeatDaysNames, repeatEndDate, count) => {
-        const message = `📅 반복 예약이 일괄 등록되었습니다
+        let message = `📅 반복 예약이 일괄 등록되었습니다
 
 • 구장: ${booking.venue} ${booking.court}
 • 날짜: ${booking.date} 부터
@@ -239,11 +242,14 @@
 • 예약자: ${booking.customerName}
 • 카테고리: ${booking.category}
 • 생성된 예약: ${count}건`;
+        if (booking.category === '대관' && booking.phone) {
+          message += `\n• 연락처: ${booking.phone}`;
+        }
         await sendKakaoWorkMessage(message);
       };
 
       const sendCancelNotification = async (booking, reason) => {
-        const message = `❌ 예약이 취소되었습니다
+        let message = `❌ 예약이 취소되었습니다
 
 • 구장: ${booking.venue} ${booking.court}
 • 날짜: ${booking.date}
@@ -251,11 +257,14 @@
 • 예약자: ${booking.customerName}
 • 카테고리: ${booking.category}
 • 취소사유: ${reason || '없음'}`;
+        if (booking.category === '대관' && booking.phone) {
+          message += `\n• 연락처: ${booking.phone}`;
+        }
         await sendKakaoWorkMessage(message);
       };
 
       const sendBulkCancelNotification = async (booking, dayName, count) => {
-        const message = `❌ 반복 예약이 일괄 취소되었습니다
+        let message = `❌ 반복 예약이 일괄 취소되었습니다
 
 • 구장: ${booking.venue} ${booking.court}
 • 기준일: ${booking.date} 이후
@@ -264,6 +273,9 @@
 • 예약자: ${booking.customerName}
 • 카테고리: ${booking.category}
 • 취소된 예약: ${count}건`;
+        if (booking.category === '대관' && booking.phone) {
+          message += `\n• 연락처: ${booking.phone}`;
+        }
         await sendKakaoWorkMessage(message);
       };
 
