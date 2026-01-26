@@ -1,0 +1,16 @@
+name: Daily Schedule Notification
+
+on:
+  schedule:
+    - cron: '0 23 * * *'  # UTC 23시 = 한국시간 08시
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Daily Schedule
+        run: |
+          curl -X POST "https://ltkjopawqjdzoqegbkaz.supabase.co/functions/v1/daily-schedule" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0a2pvcGF3cWpkem9xZWdia2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzU5MzMsImV4cCI6MjA2Mzc1MTkzM30.oj4ujT4FJMdJjDjRG8cdnKKIhrzfXSh0hAqrMWkz684"
