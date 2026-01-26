@@ -199,6 +199,100 @@
         );
       }
 
+      // 카카오워크 알림 설정
+      const KAKAO_WORK_APP_KEY = '5ed49e9f.8da64110c11f4e669dc4373446e50bd2';
+      const KAKAO_WORK_EMAILS = ['ink9636@gmail.com']; // 알림 받을 이메일 목록
+
+      const sendKakaoWorkMessage = async (message) => {
+        try {
+          for (const email of KAKAO_WORK_EMAILS) {
+            // 1. 사용자 ID 조회
+            const userRes = await fetch(`https://api.kakaowork.com/v1/users.find_by_email?email=${encodeURIComponent(email)}`, {
+              headers: { 'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}` }
+            });
+            const userData = await userRes.json();
+            if (!userData.user) continue;
+
+            // 2. 대화방 개설
+            const convRes = await fetch('https://api.kakaowork.com/v1/conversations.open', {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ user_id: userData.user.id })
+            });
+            const convData = await convRes.json();
+            if (!convData.conversation) continue;
+
+            // 3. 메시지 발송
+            await fetch('https://api.kakaowork.com/v1/messages.send', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                conversation_id: convData.conversation.id,
+                text: message
+              })
+            });
+          }
+        } catch (error) {
+          console.error('카카오워크 알림 전송 실패:', error);
+        }
+      };
+
+      const sendNewBookingNotification = async (booking) => {
+        const message = `📅 새 예약이 등록되었습니다
+
+• 구장: ${booking.venue} ${booking.court}
+• 날짜: ${booking.date}
+• 시간: ${booking.startTime} - ${booking.endTime}
+• 예약자: ${booking.customerName}
+• 카테고리: ${booking.category}`;
+        await sendKakaoWorkMessage(message);
+      };
+
+      const sendRepeatBookingNotification = async (booking, repeatDaysNames, repeatEndDate, count) => {
+        const message = `📅 반복 예약이 일괄 등록되었습니다
+
+• 구장: ${booking.venue} ${booking.court}
+• 날짜: ${booking.date} 부터
+• 반복요일: ${repeatDaysNames}
+• 종료일: ${repeatEndDate}
+• 시간: ${booking.startTime} - ${booking.endTime}
+• 예약자: ${booking.customerName}
+• 카테고리: ${booking.category}
+• 생성된 예약: ${count}건`;
+        await sendKakaoWorkMessage(message);
+      };
+
+      const sendCancelNotification = async (booking, reason) => {
+        const message = `❌ 예약이 취소되었습니다
+
+• 구장: ${booking.venue} ${booking.court}
+• 날짜: ${booking.date}
+• 시간: ${booking.startTime} - ${booking.endTime}
+• 예약자: ${booking.customerName}
+• 카테고리: ${booking.category}
+• 취소사유: ${reason || '없음'}`;
+        await sendKakaoWorkMessage(message);
+      };
+
+      const sendBulkCancelNotification = async (booking, dayName, count) => {
+        const message = `❌ 반복 예약이 일괄 취소되었습니다
+
+• 구장: ${booking.venue} ${booking.court}
+• 기준일: ${booking.date} 이후
+• 반복요일: ${dayName}
+• 시간: ${booking.startTime} - ${booking.endTime}
+• 예약자: ${booking.customerName}
+• 카테고리: ${booking.category}
+• 취소된 예약: ${count}건`;
+        await sendKakaoWorkMessage(message);
+      };
+
       const saveBooking = async (booking, isUpdate = false) => {
         try {
           const dbData = {
@@ -303,6 +397,9 @@
           if (bookingsToCreate.length > 0) {
             const success = await saveMultipleBookings(bookingsToCreate);
             if (success) {
+              // 반복 예약 알림 전송
+              const repeatDaysNames = repeatDays.sort((a, b) => a - b).map(d => dayNames[d]).join(', ');
+              sendRepeatBookingNotification(newBooking, repeatDaysNames, repeatEndDate, bookingsToCreate.length);
               alert(`${bookingsToCreate.length}개의 예약이 생성되었습니다.`);
               resetModal();
             }
@@ -314,7 +411,13 @@
           if (overlapping) { setOverlapAlert(overlapping); return; }
           const bookingData = { ...newBooking, id: isEditMode ? editingBookingId : Date.now() };
           const success = await saveBooking(bookingData, isEditMode);
-          if (success) resetModal();
+          if (success) {
+            // 새 예약 알림 전송 (수정이 아닐 때만)
+            if (!isEditMode) {
+              sendNewBookingNotification(bookingData);
+            }
+            resetModal();
+          }
         }
       };
 
@@ -346,6 +449,8 @@
         const booking = bookings.find(b => b.id === id);
         if (booking) {
           await saveBooking({ ...booking, status: 'cancelled', cancelReason: reason, cancelledAt: new Date().toISOString() }, true);
+          // 단일 취소 알림 전송
+          sendCancelNotification(booking, reason);
         }
         setSelectedBooking(null);
         setShowCancelModal(null);
@@ -397,12 +502,17 @@
           );
           
           const idsToDelete = bookingsToDelete.map(b => b.id);
+          const deleteCount = idsToDelete.length;
           
           const { error } = await db.from('bookings')
             .delete()
             .in('id', idsToDelete);
           
           if (error) throw error;
+          
+          // 일괄 취소 알림 전송
+          sendBulkCancelNotification(booking, dayNames[bookingDayOfWeek], deleteCount);
+          
           await loadBookings();
           alert('일괄 취소가 완료되었습니다.');
         } catch (error) {
