@@ -200,44 +200,15 @@
       }
 
       // 카카오워크 알림 설정
-      const KAKAO_WORK_APP_KEY = '5ed49e9f.8da64110c11f4e669dc4373446e50bd2';
-      const KAKAO_WORK_EMAILS = ['ink9636@gmail.com']; // 알림 받을 이메일 목록
+      const EDGE_FUNCTION_URL = 'https://ltkjopawqjdzoqegbkaz.supabase.co/functions/v1/kakao-notify';
 
       const sendKakaoWorkMessage = async (message) => {
         try {
-          for (const email of KAKAO_WORK_EMAILS) {
-            // 1. 사용자 ID 조회
-            const userRes = await fetch(`https://api.kakaowork.com/v1/users.find_by_email?email=${encodeURIComponent(email)}`, {
-              headers: { 'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}` }
-            });
-            const userData = await userRes.json();
-            if (!userData.user) continue;
-
-            // 2. 대화방 개설
-            const convRes = await fetch('https://api.kakaowork.com/v1/conversations.open', {
-              method: 'POST',
-              headers: { 
-                'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ user_id: userData.user.id })
-            });
-            const convData = await convRes.json();
-            if (!convData.conversation) continue;
-
-            // 3. 메시지 발송
-            await fetch('https://api.kakaowork.com/v1/messages.send', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${KAKAO_WORK_APP_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                conversation_id: convData.conversation.id,
-                text: message
-              })
-            });
-          }
+          await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+          });
         } catch (error) {
           console.error('카카오워크 알림 전송 실패:', error);
         }
