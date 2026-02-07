@@ -825,15 +825,64 @@
               </div>
               <div className="p-3">
                 <div className="bg-white p-3 rounded-xl shadow">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-500 w-8">시작</label>
-                      <input type="date" value={customDateRange.start} onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-500 w-8">종료</label>
-                      <input type="date" value={customDateRange.end} onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
-                    </div>
+                  <div className="flex gap-2 mb-3">
+                    <button 
+                      onClick={() => {
+                        const today = new Date();
+                        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                        setCustomDateRange({ start: dateStr, end: dateStr });
+                      }}
+                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                    >
+                      오늘
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const today = new Date();
+                        const dayOfWeek = today.getDay();
+                        const monday = new Date(today);
+                        monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                        const sunday = new Date(monday);
+                        sunday.setDate(monday.getDate() + 6);
+                        const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+                        const endStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+                        setCustomDateRange({ start: startStr, end: endStr });
+                      }}
+                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                    >
+                      이번주
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                        const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
+                        const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+                        setCustomDateRange({ start: startStr, end: endStr });
+                      }}
+                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                    >
+                      이번달
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const today = new Date();
+                        const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                        const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+                        const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
+                        const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+                        setCustomDateRange({ start: startStr, end: endStr });
+                      }}
+                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                    >
+                      지난달
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={customDateRange.start} onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
+                    <span className="text-gray-400">~</span>
+                    <input type="date" value={customDateRange.end} onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
                   </div>
                   {custom && (
                     <div className="space-y-2 mt-3">
