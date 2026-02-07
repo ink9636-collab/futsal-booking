@@ -67,6 +67,7 @@
         category: '대관', customerName: '', phone: '', route: '전화', status: 'active'
       });
       const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+      const [selectedDatePreset, setSelectedDatePreset] = useState(null);
       const [searchQuery, setSearchQuery] = useState('');
       const [listVenue, setListVenue] = useState('전체');
       const [displayCount, setDisplayCount] = useState(20);
@@ -831,8 +832,9 @@
                         const today = new Date();
                         const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                         setCustomDateRange({ start: dateStr, end: dateStr });
+                        setSelectedDatePreset('today');
                       }}
-                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                      className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium ${selectedDatePreset === 'today' ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
                     >
                       오늘
                     </button>
@@ -847,8 +849,9 @@
                         const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
                         const endStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
                         setCustomDateRange({ start: startStr, end: endStr });
+                        setSelectedDatePreset('week');
                       }}
-                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                      className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium ${selectedDatePreset === 'week' ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
                     >
                       이번주
                     </button>
@@ -860,8 +863,9 @@
                         const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
                         const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
                         setCustomDateRange({ start: startStr, end: endStr });
+                        setSelectedDatePreset('month');
                       }}
-                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                      className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium ${selectedDatePreset === 'month' ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
                     >
                       이번달
                     </button>
@@ -873,16 +877,17 @@
                         const startStr = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, '0')}-${String(firstDay.getDate()).padStart(2, '0')}`;
                         const endStr = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
                         setCustomDateRange({ start: startStr, end: endStr });
+                        setSelectedDatePreset('lastMonth');
                       }}
-                      className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-600 font-medium"
+                      className={`flex-1 rounded-lg px-2 py-2 text-sm font-medium ${selectedDatePreset === 'lastMonth' ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
                     >
                       지난달
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <input type="date" value={customDateRange.start} onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
+                    <input type="date" value={customDateRange.start} onChange={(e) => { setCustomDateRange({...customDateRange, start: e.target.value}); setSelectedDatePreset(null); }} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
                     <span className="text-gray-400">~</span>
-                    <input type="date" value={customDateRange.end} onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
+                    <input type="date" value={customDateRange.end} onChange={(e) => { setCustomDateRange({...customDateRange, end: e.target.value}); setSelectedDatePreset(null); }} className="flex-1 border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
                   </div>
                   {custom && (
                     <div className="space-y-2 mt-3">
