@@ -650,7 +650,7 @@
                     </div>
                   ))}
                 </div>
-                <div className="border-t-2 border-gray-400 my-0.5"></div>
+                <div className="border-t-2 border-gray-600 my-0.5"></div>
                 <div className="space-y-0.5 cursor-pointer" onClick={() => openDateModal(date, '2구장')}>
                   {court2Bookings.length === 0 && <div className="h-3"></div>}
                   {court2Bookings.map(b => (
@@ -812,10 +812,15 @@
                   <div className="w-20"></div>
                 </div>
                 <div className="flex gap-2 mb-2">
-                  <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                    <option value="전체">전체 구장</option>
-                    {venues.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
+                  {['전체', ...venues].map(v => (
+                    <button 
+                      key={v} 
+                      onClick={() => setSelectedVenue(v)} 
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${selectedVenue === v ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="p-3">
@@ -823,11 +828,11 @@
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-500 w-8">시작</label>
-                      <input type="date" value={customDateRange.start} onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})} className="flex-1 border rounded px-2 py-1.5 text-sm" />
+                      <input type="date" value={customDateRange.start} onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
                     </div>
                     <div className="flex items-center gap-2">
                       <label className="text-xs text-gray-500 w-8">종료</label>
-                      <input type="date" value={customDateRange.end} onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})} className="flex-1 border rounded px-2 py-1.5 text-sm" />
+                      <input type="date" value={customDateRange.end} onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})} className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none" />
                     </div>
                   </div>
                   {custom && (
@@ -917,9 +922,15 @@
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                    {venues.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
+                  {venues.map(v => (
+                    <button 
+                      key={v} 
+                      onClick={() => setSelectedVenue(v)} 
+                      className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${selectedVenue === v ? 'border-2 border-blue-500 bg-blue-50 text-blue-600' : 'border border-gray-300 text-gray-600'}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div className="px-4 pb-3 flex items-center justify-between">
