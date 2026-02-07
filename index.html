@@ -1,3 +1,6 @@
+Index · HTML
+복사
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -46,7 +49,6 @@
       const [appPassword, setAppPassword] = useState('');
       const [passwordError, setPasswordError] = useState(false);
       const [selectedVenue, setSelectedVenue] = useState('세마');
-      const [selectedCourt, setSelectedCourt] = useState('단일구장');
       const [currentDate, setCurrentDate] = useState(new Date());
       const [view, setView] = useState('calendar');
       const [bookings, setBookings] = useState([]);
@@ -64,7 +66,7 @@
       const [cancelReason, setCancelReason] = useState('');
       const [requiredAlert, setRequiredAlert] = useState(false);
       const [newBooking, setNewBooking] = useState({
-        venue: '세마', court: '단일구장', date: '', startTime: '18:00', endTime: '20:00',
+        venue: '세마', court: '1구장', date: '', startTime: '18:00', endTime: '20:00',
         category: '대관', customerName: '', phone: '', route: '전화', status: 'active'
       });
       const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
@@ -132,7 +134,7 @@
         }, 200);
       };
 
-      const venues = { '세마': ['단일구장'], '군포': ['전체', '1구장', '2구장'], '춘의': ['단일구장'] };
+      const venues = ['세마', '군포', '춘의'];
       const categories = { '대관': 'bg-green-500', '소셜매치': 'bg-blue-500', '아카데미': 'bg-purple-500', '자체프로그램': 'bg-orange-500' };
       const timeSlots = Array.from({length: 48}, (_, i) => `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 2) * 30).padStart(2, '0')}`);
       const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
@@ -549,16 +551,14 @@
         }
       };
 
-      const openDateModal = (date) => {
-        if (selectedVenue === '군포' && selectedCourt === '전체') {
-          return; // 전체는 시각용이므로 새 예약 불가
-        }
+      const openDateModal = (date, court = null) => {
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         setIsEditMode(false);
         setIsRepeatMode(false);
         setRepeatDays([]);
         setRepeatEndDate('');
-        setNewBooking({ venue: selectedVenue, court: selectedCourt, date: dateStr, startTime: '18:00', endTime: '20:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
+        const defaultCourt = selectedVenue === '군포' ? (court || '1구장') : '1구장';
+        setNewBooking({ venue: selectedVenue, court: defaultCourt, date: dateStr, startTime: '18:00', endTime: '20:00', category: '대관', customerName: '', phone: '', route: '전화', status: 'active' });
         setShowModal(true);
       };
 
@@ -571,12 +571,7 @@
           filtered = bookings.filter(b => { const d = new Date(b.date); return d >= start && d <= end; });
         }
         if (!isAllVenues && selectedVenue !== '전체') {
-          filtered = filtered.filter(b => {
-            if (b.venue !== selectedVenue) return false;
-            if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
-            if (selectedVenue === '군포' && selectedCourt === '전체') return b.court === '1구장' || b.court === '2구장';
-            return b.court === selectedCourt;
-          });
+          filtered = filtered.filter(b => b.venue === selectedVenue);
         }
         if (category === 'total') { setDetailData(filtered.filter(b => b.status === 'active')); setDetailTitle(`진행${isAllVenues ? ' - 전체 구장' : ''}`); }
         else if (category === 'cancelled') { setDetailData(filtered.filter(b => b.status === 'cancelled')); setDetailTitle(`취소 내역${isAllVenues ? ' - 전체 구장' : ''}`); }
@@ -596,8 +591,8 @@
 
       const getDayBookings = (date) => {
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        if (selectedVenue === '군포' && selectedCourt === '전체') {
-          // 군포 전체: 1구장, 2구장 모두 반환 (구장별로 구분)
+        if (selectedVenue === '군포') {
+          // 군포: 1구장, 2구장 모두 반환 (구장별로 구분)
           return bookings.filter(b => b.date === dateStr && b.venue === '군포')
             .sort((a, b) => {
               if (a.court !== b.court) return a.court === '1구장' ? -1 : 1;
@@ -606,8 +601,7 @@
         }
         return bookings.filter(b => {
           if (b.date !== dateStr || b.venue !== selectedVenue) return false;
-          if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
-          return b.court === selectedCourt;
+          return true;
         }).sort(sortByTime);
       };
 
@@ -620,12 +614,7 @@
           filtered = bookings.filter(b => { const d = new Date(b.date); return d >= start && d <= end; });
         }
         if (!isAllVenues && selectedVenue !== '전체') {
-          filtered = filtered.filter(b => {
-            if (b.venue !== selectedVenue) return false;
-            if ((selectedVenue === '세마' || selectedVenue === '춘의') && selectedCourt === '단일구장') return b.court === '단일구장' || b.court === '1구장';
-            if (selectedVenue === '군포' && selectedCourt === '전체') return b.court === '1구장' || b.court === '2구장';
-            return b.court === selectedCourt;
-          });
+          filtered = filtered.filter(b => b.venue === selectedVenue);
         }
         const active = filtered.filter(b => b.status === 'active');
         const cancelled = filtered.filter(b => b.status === 'cancelled');
@@ -641,7 +630,7 @@
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const startingDay = new Date(year, month, 1).getDay();
         const days = [];
-        const isGunpoAll = selectedVenue === '군포' && selectedCourt === '전체';
+        const isGunpo = selectedVenue === '군포';
         
         for (let i = 0; i < startingDay; i++) days.push(<div key={`e${i}`} className="min-h-20 border-b border-r bg-gray-50"></div>);
         for (let day = 1; day <= daysInMonth; day++) {
@@ -650,23 +639,25 @@
           const isToday = date.toDateString() === new Date().toDateString();
           const formatName = (name) => { if (name === '플랩풋볼') return '플랩'; return name.length > 3 ? name.slice(0, 3) + '..' : name; };
           
-          if (isGunpoAll) {
+          if (isGunpo) {
             const court1Bookings = dayBookings.filter(b => b.court === '1구장');
             const court2Bookings = dayBookings.filter(b => b.court === '2구장');
             days.push(
               <div key={day} className={`min-h-20 border-b border-r p-0.5 overflow-y-auto ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
                 <div className={`text-[11px] font-semibold mb-0.5 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{day}</div>
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 cursor-pointer" onClick={() => openDateModal(date, '1구장')}>
+                  {court1Bookings.length === 0 && <div className="h-3"></div>}
                   {court1Bookings.map(b => (
-                    <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); if (isGunpoAll) return; setSelectedBooking(b); }}>
+                    <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
                       <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-gray-400 my-0.5"></div>
-                <div className="space-y-0.5">
+                <div className="border-t-2 border-gray-600 my-0.5"></div>
+                <div className="space-y-0.5 cursor-pointer" onClick={() => openDateModal(date, '2구장')}>
+                  {court2Bookings.length === 0 && <div className="h-3"></div>}
                   {court2Bookings.map(b => (
-                    <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); if (isGunpoAll) return; setSelectedBooking(b); }}>
+                    <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
                       <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
                     </div>
                   ))}
@@ -748,7 +739,7 @@
                 </div>
                 <select value={listVenue} onChange={(e) => { setListVenue(e.target.value); setDisplayCount(20); }} className="w-full border rounded-lg px-3 py-2 text-sm mb-3">
                   <option value="전체">전체 구장</option>
-                  {Object.keys(venues).map(v => <option key={v} value={v}>{v}</option>)}
+                  {venues.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
                 <input type="text" placeholder="이름 또는 연락처 검색" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setDisplayCount(20); }} className="w-full border rounded-lg px-3 py-2 text-sm" />
               </div>
@@ -824,15 +815,10 @@
                   <div className="w-20"></div>
                 </div>
                 <div className="flex gap-2 mb-2">
-                  <select value={selectedVenue} onChange={(e) => { setSelectedVenue(e.target.value); if (e.target.value !== '전체') setSelectedCourt(venues[e.target.value][0]); }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                  <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
                     <option value="전체">전체 구장</option>
-                    {Object.keys(venues).map(v => <option key={v} value={v}>{v}</option>)}
+                    {venues.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
-                  {selectedVenue !== '전체' && (
-                    <select value={selectedCourt} onChange={(e) => setSelectedCourt(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                      {venues[selectedVenue].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  )}
                 </div>
               </div>
               <div className="p-3">
@@ -934,11 +920,8 @@
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <select value={selectedVenue} onChange={(e) => { setSelectedVenue(e.target.value); setSelectedCourt(venues[e.target.value][0]); }} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                    {Object.keys(venues).map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                  <select value={selectedCourt} onChange={(e) => setSelectedCourt(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
-                    {venues[selectedVenue].map(c => <option key={c} value={c}>{c}</option>)}
+                  <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)} className="flex-1 border rounded-lg px-3 py-2 text-sm">
+                    {venues.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
               </div>
@@ -971,9 +954,9 @@
                   <button onClick={addBooking} className="text-blue-500 font-medium">완료</button>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="block text-sm font-medium mb-1.5">구장</label><select value={newBooking.venue} onChange={(e) => setNewBooking({...newBooking, venue: e.target.value, court: venues[e.target.value][0]})} className="w-full border rounded-lg px-3 py-2.5">{Object.keys(venues).map(v => <option key={v} value={v}>{v}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium mb-1.5">코트</label><select value={newBooking.court} onChange={(e) => setNewBooking({...newBooking, court: e.target.value})} className="w-full border rounded-lg px-3 py-2.5">{venues[newBooking.venue].map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                  <div className={newBooking.venue === '군포' ? "grid grid-cols-2 gap-3" : ""}>
+                    <div><label className="block text-sm font-medium mb-1.5">구장</label><select value={newBooking.venue} onChange={(e) => setNewBooking({...newBooking, venue: e.target.value, court: e.target.value === '군포' ? '1구장' : '1구장'})} className="w-full border rounded-lg px-3 py-2.5">{venues.map(v => <option key={v} value={v}>{v}</option>)}</select></div>
+                    {newBooking.venue === '군포' && <div><label className="block text-sm font-medium mb-1.5">코트</label><select value={newBooking.court} onChange={(e) => setNewBooking({...newBooking, court: e.target.value})} className="w-full border rounded-lg px-3 py-2.5"><option value="1구장">1구장</option><option value="2구장">2구장</option></select></div>}
                   </div>
                   <div><label className="block text-sm font-medium mb-1.5">날짜 *</label><input type="date" value={newBooking.date} onChange={(e) => setNewBooking({...newBooking, date: e.target.value})} className="w-full border rounded-lg px-3 py-2.5" /></div>
                   <div className="grid grid-cols-2 gap-3">
