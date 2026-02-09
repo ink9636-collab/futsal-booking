@@ -642,9 +642,8 @@
             const court2Bookings = dayBookings.filter(b => b.court === '2구장');
             days.push(
               <div key={day} className={`min-h-20 border-b border-r p-0.5 overflow-y-auto ${isToday ? 'bg-blue-100' : 'bg-white'}`}>
-                <div className={`text-[11px] font-semibold mb-0.5 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>{day}</div>
-                <div className="space-y-0.5 cursor-pointer" onClick={() => openDateModal(date, '1구장')}>
-                  {court1Bookings.length === 0 && <div className="h-3"></div>}
+                <div className={`text-[11px] font-semibold mb-0.5 cursor-pointer ${isToday ? 'text-blue-600' : 'text-gray-700'}`} onClick={() => openDateModal(date, '1구장')}>{day}</div>
+                <div className="space-y-0.5 cursor-pointer min-h-[16px]" onClick={() => openDateModal(date, '1구장')}>
                   {court1Bookings.map(b => (
                     <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
                       <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
@@ -652,8 +651,7 @@
                   ))}
                 </div>
                 <div className="border-t-2 border-gray-400 my-0.5"></div>
-                <div className="space-y-0.5 cursor-pointer" onClick={() => openDateModal(date, '2구장')}>
-                  {court2Bookings.length === 0 && <div className="h-3"></div>}
+                <div className="space-y-0.5 cursor-pointer min-h-[16px]" onClick={() => openDateModal(date, '2구장')}>
                   {court2Bookings.map(b => (
                     <div key={b.id} className={`text-[8px] leading-tight px-0.5 py-0.5 rounded ${categories[b.category]} ${b.status === 'cancelled' ? 'opacity-30 line-through' : ''} text-white cursor-pointer active:opacity-80`} onClick={(e) => { e.stopPropagation(); setSelectedBooking(b); }}>
                       <div>{b.startTime.split(':')[0]}시 {formatName(b.customerName)}</div>
