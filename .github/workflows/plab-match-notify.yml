@@ -1,0 +1,16 @@
+name: Plab Match Notification
+on:
+  schedule:
+    - cron: '0 23 * * 6'   # 토요일 UTC 23시 = 한국시간 일요일 08시
+    - cron: '0 6 * * 0,6'  # 토/일 UTC 06시 = 한국시간 15시
+    - cron: '0 6 * * 1-5'  # 평일 UTC 06시 = 한국시간 15시
+  workflow_dispatch:
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Plab Match Notification
+        run: |
+          curl -X POST "https://ltkjopawqjdzoqegbkaz.supabase.co/functions/v1/plab-match-notify" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0a2pvcGF3cWpkem9xZWdia2F6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzU5MzMsImV4cCI6MjA2Mzc1MTkzM30.oj4ujT4FJMdJjDjRG8cdnKKIhrzfXSh0hAqrMWkz684"
